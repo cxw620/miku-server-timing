@@ -1,6 +1,6 @@
 [package]
 name = "miku-server-timing"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 rust-version = "1.70"
 
@@ -15,7 +15,7 @@ repository = "https://github.com/cxw620/miku-server-timing"
 
 [dependencies]
 http = "1.0.0"
-macro-toolset = { version = "0.7.5", default-features = false, features = ["feat-string", "feat-string-ext-ryu"] }
+macro-toolset = { version = "0.7.6", default-features = false, features = ["feat-string", "feat-string-ext-ryu"] }
 pin-project-lite = "0.2.7"
 tower-layer = "0.3.2"
 tower-service = "0.3"
