@@ -7,11 +7,8 @@ use std::{
     time::Instant,
 };
 
-use http::{header::Entry as HeaderEntry, HeaderName, HeaderValue, Request, Response};
-use macro_toolset::{
-    str_concat,
-    string::{NumStr, StringExtT},
-};
+use http::{header::Entry as HeaderEntry, HeaderName, Request, Response};
+use macro_toolset::string::{NumStr, StringExt, StringExtT};
 use pin_project_lite::pin_project;
 
 #[derive(Debug, Clone)]
@@ -117,33 +114,35 @@ where
         let mut response: Response<B> = ready!(this.inner.poll(cx))?;
 
         match response.headers_mut().try_entry(SERVER_TIMING) {
-            Ok(entry) => {
-                let new_server_timing_content = (
-                    this.app,
-                    ";",
-                    this.description.with_prefix("desc=\"").with_suffix("\";"),
-                    "dur=",
-                    NumStr::new_default(this.request_time.elapsed().as_secs_f32() * 1000.0)
-                        .set_resize_len::<1>(),
-                );
-
-                match entry {
-                    HeaderEntry::Occupied(mut val) => {
-                        val.insert(
-                            HeaderValue::from_str(&str_concat!(
-                                new_server_timing_content,
-                                val.get().to_str().with_prefix(", ")
-                            ))
-                            .unwrap(),
-                        );
-                    }
-                    HeaderEntry::Vacant(val) => {
-                        val.insert(
-                            HeaderValue::from_str(&str_concat!(new_server_timing_content)).unwrap(),
-                        );
-                    }
+            Ok(entry) => match entry {
+                HeaderEntry::Occupied(mut val) => {
+                    val.insert(
+                        StringExt::from_value((
+                            this.app.with_suffix(";"),
+                            this.description.with_prefix("desc=\"").with_suffix("\";"),
+                            NumStr::new_default(this.request_time.elapsed().as_secs_f32() * 1000.0)
+                                .set_resize_len::<1>()
+                                .with_prefix("dur="),
+                            val.get().to_str().with_prefix(", "),
+                        ))
+                        .try_into()
+                        .unwrap(),
+                    );
                 }
-            }
+                HeaderEntry::Vacant(val) => {
+                    val.insert(
+                        StringExt::from_value((
+                            this.app.with_suffix(";"),
+                            this.description.with_prefix("desc=\"").with_suffix("\";"),
+                            NumStr::new_default(this.request_time.elapsed().as_secs_f32() * 1000.0)
+                                .set_resize_len::<1>()
+                                .with_prefix("dur="),
+                        ))
+                        .try_into()
+                        .unwrap(),
+                    );
+                }
+            },
             Err(_e) => {
                 #[cfg(feature = "feat-tracing")]
                 tracing::error!("Failed to add `server-timing` header: {_e:?}");
@@ -232,7 +231,7 @@ mod test {
                     (hdr, "")
                 }),
             )
-            .layer(ServerTimingLayer::new(name));
+            .layer(ServerTimingLayer::new(name).with_description("desc1"));
 
         let listener = tokio::net::TcpListener::bind("0.0.0.0:3003").await.unwrap();
         tokio::spawn(async { axum::serve(listener, app.into_make_service()).await });
@@ -246,7 +245,7 @@ mod test {
             let hdr = headers.get("server-timing").unwrap();
             assert!(hdr.contains("svc1"));
             assert!(hdr.contains("inner"));
-            println!("{hdr:?}");
+            println!("{hdr}");
         })
         .await;
     }
