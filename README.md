@@ -20,7 +20,7 @@ Using the layer to inject the `Server-Timing` Header.
 HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 22
-server-timing: HelloService;dur=102
+server-timing: HelloService;dur=102.0
 date: Wed, 19 Apr 2023 15:25:40 GMT
 
 <h1>Hello, World!</h1>
@@ -41,7 +41,7 @@ Using the layer to inject the Server-Timing Header with description.
 HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
 content-length: 22
-server-timing: HelloService;desc="whatever";dur=102
+server-timing: HelloService;desc="whatever";dur=102.0
 date: Wed, 19 Apr 2023 15:25:40 GMT
 
 <h1>Hello, World!</h1>
@@ -50,3 +50,5 @@ date: Wed, 19 Apr 2023 15:25:40 GMT
 ## Special thanks
 
 [axum-server-timing](https://github.com/JensWalter/axum-server-timing)
+
+This crate is a fork of the above crate, modified to gain better performance, and can serve as a simple replacement.
