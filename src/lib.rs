@@ -8,7 +8,7 @@ use std::{
 };
 
 use http::{header::Entry as HeaderEntry, HeaderName, Request, Response};
-use macro_toolset::string::{NumStr, StringExt, StringExtT};
+use macro_toolset::string::{NumStr, StringExtT};
 use pin_project_lite::pin_project;
 
 #[derive(Debug, Clone)]
@@ -116,31 +116,35 @@ where
         match response.headers_mut().try_entry(SERVER_TIMING) {
             Ok(entry) => match entry {
                 HeaderEntry::Occupied(mut val) => {
-                    val.insert(
-                        StringExt::from_value((
-                            this.app.with_suffix(";"),
-                            this.description.with_prefix("desc=\"").with_suffix("\";"),
-                            NumStr::new_default(this.request_time.elapsed().as_secs_f32() * 1000.0)
-                                .set_resize_len::<1>()
-                                .with_prefix("dur="),
-                            val.get().to_str().with_prefix(", "),
-                        ))
-                        .try_into()
-                        .unwrap(),
-                    );
+                    if let Ok(v) = (
+                        this.app.with_suffix(";"),
+                        this.description.with_prefix("desc=\"").with_suffix("\";"),
+                        NumStr::new_default(this.request_time.elapsed().as_secs_f32() * 1000.0)
+                            .set_resize_len::<1>()
+                            .with_prefix("dur="),
+                        val.get().to_str().with_prefix(", "),
+                    )
+                        .to_http_header_value()
+                    {
+                        val.insert(v);
+                    } else {
+                        // unlikely to happen, but if it does, just ignore it.
+                    }
                 }
                 HeaderEntry::Vacant(val) => {
-                    val.insert(
-                        StringExt::from_value((
-                            this.app.with_suffix(";"),
-                            this.description.with_prefix("desc=\"").with_suffix("\";"),
-                            NumStr::new_default(this.request_time.elapsed().as_secs_f32() * 1000.0)
-                                .set_resize_len::<1>()
-                                .with_prefix("dur="),
-                        ))
-                        .try_into()
-                        .unwrap(),
-                    );
+                    if let Ok(v) = (
+                        this.app.with_suffix(";"),
+                        this.description.with_prefix("desc=\"").with_suffix("\";"),
+                        NumStr::new_default(this.request_time.elapsed().as_secs_f32() * 1000.0)
+                            .set_resize_len::<1>()
+                            .with_prefix("dur="),
+                    )
+                        .to_http_header_value()
+                    {
+                        val.insert(v);
+                    } else {
+                        // unlikely to happen, but if it does, just ignore it.
+                    }
                 }
             },
             Err(_e) => {
@@ -156,7 +160,7 @@ where
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use std::time::Duration;
 
     use axum::{routing::get, Router};
